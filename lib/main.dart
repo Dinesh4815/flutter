@@ -1,3 +1,4 @@
+import 'package:apiusingaccesstoken/bottomnavagitionbar.dart';
 import 'package:apiusingaccesstoken/gridview.dart';
 import 'package:apiusingaccesstoken/listview.dart';
 //import 'package:apiusingaccesstoken/listview.dart';
@@ -13,8 +14,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
 
-      home:  HomeScreen(),
+      home:  navBar(),
     );
   }
 }

@@ -15,27 +15,41 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   int page = 1;
-  bool isLoading = false;
+  bool isLoading = false; 
   String searchQuery = "";
   List<Datum> posts = [];
   List<Datum> filteredPosts = [];
 
   Future<void> fetchPosts({String query = "", bool refresh = false}) async {
     if (isLoading) return;
+
     setState(() {
       isLoading = true;
-    });
-
-    try {
       if (refresh) {
         page = 1;
         posts.clear();
+        filteredPosts.clear();
       }
+    });
+
+    try {
       final fetchedPosts = await apiServices.fetchPosts(page, 10, searchQuery: query);
+
       setState(() {
-        posts = query.isEmpty ? [...posts, ...fetchedPosts] : fetchedPosts;
-        filteredPosts = List.from(posts);
-        page++;
+        if (refresh) {
+          posts = List.from(fetchedPosts);
+        } else {
+          posts.addAll(fetchedPosts);
+        }
+
+    
+        if (query.isNotEmpty) {
+          filteredPosts = List.from(posts.where((post) => post.title!.toLowerCase().contains(query.toLowerCase())));
+        } else {
+          filteredPosts = List.from(posts);
+        }
+
+        page++; 
       });
     } catch (e) {
       print("Error fetching posts: $e");
@@ -44,6 +58,10 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       isLoading = false;
     });
+  }
+
+  Future<void> _refreshPosts() async {
+    await fetchPosts(query: searchQuery, refresh: true);
   }
 
   void _search(String query) {
@@ -74,7 +92,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("GridView with Pagination & Search")),
+      appBar: AppBar(title: const Text("GridView with Pagination & Search",style:TextStyle(
+          color: Colors.teal,fontWeight: FontWeight.bold
+        ),
+      )),
       body: Column(
         children: [
           Padding(
@@ -95,9 +116,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async => fetchPosts(refresh: true),
+              onRefresh: _refreshPosts,
               child: filteredPosts.isEmpty && !isLoading
-                  ? Center(
+                  ? const Center(
                       child: Text(
                         "No Data Found",
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

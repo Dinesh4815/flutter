@@ -20,29 +20,47 @@ class _homescreenState extends State<homescreen> {
   List<Datum> filteredPosts = [];
   Future<void> fetchPosts({String query = "", bool refresh = false}) async {
     if (isLoading) return;
+
     setState(() {
       isLoading = true;
-    });
-    // await Future.delayed(const Duration(seconds: 1));
-    try {
       if (refresh) {
         page = 1;
         posts.clear();
+        filteredPosts.clear();
       }
+    });
 
+    try {
       final fetchedPosts =
           await apiResponce.fetchPosts(page, 20, searchQuery: query);
+
       setState(() {
-        posts = query.isEmpty ? [...posts, ...fetchedPosts] : fetchedPosts;
-        filteredPosts = List.from(posts);
+        if (refresh) {
+          posts = List.from(fetchedPosts);
+        } else {
+          posts.addAll(fetchedPosts);
+        }
+
+        if (query.isNotEmpty) {
+          filteredPosts = List.from(posts.where((post) =>
+              post.title!.toLowerCase().contains(query.toLowerCase())));
+        } else {
+          filteredPosts = List.from(posts);
+        }
+
         page++;
       });
     } catch (e) {
       print("Error fetching posts: $e");
     }
+
     setState(() {
       isLoading = false;
     });
+  }
+
+  Future<void> _refreshPosts() async {
+    await fetchPosts(query: searchQuery, refresh: true);
   }
 
   void _search(String query) {
@@ -54,8 +72,8 @@ class _homescreenState extends State<homescreen> {
 
   @override
   void initState() {
-    fetchPosts();
     super.initState();
+    fetchPosts();
     _scrollController.addListener(() {
       if (_scrollController.position.pixels ==
           _scrollController.position.maxScrollExtent) {
@@ -75,7 +93,10 @@ class _homescreenState extends State<homescreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("pagination Using ListView"),
+        title: Text("ListView with Pagination & Search",style:TextStyle(
+          color: Colors.teal,fontWeight: FontWeight.bold
+        ),
+        ),
       ),
       body: Column(
         children: [
@@ -97,7 +118,7 @@ class _homescreenState extends State<homescreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => fetchPosts(refresh: true),
+              onRefresh: _refreshPosts,
               child: ListView.builder(
                 controller: _scrollController,
                 itemCount: posts.length + 1,
